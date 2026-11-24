@@ -22,8 +22,10 @@ export function monthLabel(ym) {
 
 export function entriesFor(state, aba, ym) {
   return state.entries
-    .filter(x => x.aba === aba && monthOf(x.data) === ym)
-    .sort((a, b) => b.data.localeCompare(a.data));
+    .map((x, i) => [x, i]) // i = ordem em que foi lançado
+    .filter(([x]) => x.aba === aba && monthOf(x.data) === ym)
+    .sort(([a, ia], [b, ib]) => b.data.localeCompare(a.data) || ib - ia)
+    .map(([x]) => x);
 }
 
 export const total = entries => entries.reduce((sum, x) => sum + x.valor, 0);

@@ -45,3 +45,8 @@ test('sobrou = renda menos gastos da Casa, PJ não entra', () => {
   assert.equal(sobrou(s, '2026-11'), 477250);
   assert.equal(sobrou(s, '2026-10'), -5000);
 });
+
+test('entriesFor: no mesmo dia, o último lançado aparece primeiro', () => {
+  const st = { ...s, entries: [e('a', 'pj', 1, 'X', '2026-11-24'), e('b', 'pj', 2, 'Y', '2026-11-24'), e('c', 'pj', 3, 'Z', '2026-11-20')] };
+  assert.deepEqual(entriesFor(st, 'pj', '2026-11').map(x => x.id), ['b', 'a', 'c']);
+});
