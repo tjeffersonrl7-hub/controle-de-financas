@@ -1,7 +1,7 @@
 // Busca sempre a versão nova quando tem internet; sem internet, usa a cópia guardada no celular.
 const CACHE = 'financas-v1';
 const FILES = ['./', './index.html', './styles.css', './manifest.webmanifest',
-  './js/app.js', './js/money.js', './js/finance.js', './js/store.js',
+  './js/app.js', './js/money.js', './js/finance.js', './js/store.js', './js/voz.js',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', ev => {

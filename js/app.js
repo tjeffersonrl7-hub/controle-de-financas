@@ -1,5 +1,6 @@
 // Telas do app: desenha Casa/PJ e cuida dos toques. A lógica fica em money/finance/store.
 import { parseBRL, formatBRL } from './money.js';
+import { interpretarFala } from './voz.js';
 import { todayISO, monthOf, shiftMonth, monthLabel, entriesFor, total, byCategory, sobrou } from './finance.js';
 import { load, save, setRenda, addCategory, renameCategory, deleteCategory, addCompra, updateCompra, deleteCompra, compraDe, PAGAMENTOS, MAX_PARCELAS } from './store.js';
 
@@ -86,7 +87,9 @@ function openSheet(html) {
   $('#sheet-box').innerHTML = html;
   $('#sheet').hidden = false;
 }
+let vozAtiva = null; // microfone ligado no momento (pra desligar se a tela fechar)
 function closeSheet() {
+  vozAtiva?.abort();
   $('#sheet').hidden = true;
   $('#sheet-box').innerHTML = '';
 }
@@ -102,6 +105,8 @@ function abrirLancamento(entry) {
   const titulo = compra ? (compra.parcelas > 1 ? `Editar compra · ${compra.parcelas}x` : 'Editar gasto') : 'Lançar gasto';
   openSheet(`
     <h3>${titulo} · ${aba === 'casa' ? 'Casa' : 'PJ'}</h3>
+    <button type="button" class="mic" id="f-mic" hidden><span class="mic-ic">🎤</span><span id="f-mic-txt">Falar o gasto</span></button>
+    <div class="voz" id="f-voz" hidden></div>
     <label for="f-valor" id="f-valor-lbl">Valor (R$)</label>
     <input id="f-valor" class="valor" inputmode="decimal" placeholder="0,00" autocomplete="off" value="${compra ? centsToInput(compra.valor) : ''}">
     <label>Como pagou</label>
@@ -166,6 +171,7 @@ function abrirLancamento(entry) {
     if (!commit(compra ? updateCompra(state, grupo, campos) : addCompra(state, campos))) { ui.ym = ymAntes; return; }
     closeSheet();
   };
+  ligarMicrofone(cats, atualizaParcelas);
   if (compra) {
     $('#f-apagar').onclick = () => {
       const msg = compra.parcelas > 1
@@ -177,6 +183,55 @@ function abrirLancamento(entry) {
   } else {
     $('#f-cancelar').onclick = closeSheet;
   }
+}
+
+// ---------- registrar por fala ----------
+// Usa o reconhecimento de voz do Chrome. Só preenche a tela; a pessoa confere e toca em Salvar.
+const ERROS_VOZ = {
+  'not-allowed': 'O microfone está bloqueado. Libere em Configurações do Chrome → Configurações do site → Microfone.',
+  'service-not-allowed': 'O microfone está bloqueado. Libere em Configurações do Chrome → Configurações do site → Microfone.',
+  'no-speech': 'Não ouvi nada. Toque no microfone e fale de novo.',
+  'network': 'Pra entender a fala precisa de internet. Digite o valor por enquanto.',
+  'audio-capture': 'Não achei o microfone do celular.',
+};
+
+function ligarMicrofone(cats, atualizaParcelas) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return; // navegador sem reconhecimento de voz: o botão nem aparece
+  const btn = $('#f-mic'), aviso = $('#f-voz');
+  btn.hidden = false;
+  let rec = null;
+
+  const mostra = (html, erro = false) => { aviso.hidden = false; aviso.classList.toggle('erro-voz', erro); aviso.innerHTML = html; };
+  const ouvindo = on => { btn.classList.toggle('on', on); $('#f-mic-txt').textContent = on ? 'Ouvindo… fale agora' : 'Falar de novo'; };
+
+  btn.onclick = () => {
+    if (rec) { rec.stop(); return; }
+    rec = new SR();
+    rec.lang = 'pt-BR';
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    vozAtiva = rec;
+    rec.onresult = ev => {
+      if (!document.body.contains(btn)) return; // a tela foi fechada enquanto ouvia
+      const frase = ev.results[0][0].transcript;
+      const r = interpretarFala(frase, cats);
+      if (r.valor) { $('#f-valor').value = centsToInput(r.valor); }
+      if (r.pagamento) $(`#f-pag [data-pag="${r.pagamento}"]`)?.click();
+      if (r.pagamento === 'cartao') $('#f-parc').value = String(Math.min(r.parcelas, MAX_PARCELAS));
+      if (r.categoria) [...document.querySelectorAll('#f-cats [data-cat]')].find(b => b.dataset.cat === r.categoria)?.click();
+      atualizaParcelas();
+      const falta = [!r.valor && 'o valor', !r.pagamento && 'como pagou', !r.categoria && 'a categoria'].filter(Boolean);
+      mostra(`Entendi: “${esc(frase)}”` + (falta.length ? `<br><b>Confira:</b> não entendi ${falta.join(', ')}.` : '<br>Confira e toque em <b>Salvar</b>.'));
+    };
+    const terminou = () => { rec = null; vozAtiva = null; if (document.body.contains(btn)) ouvindo(false); };
+    rec.onerror = ev => {
+      terminou(); // nem sempre o Chrome chama onend depois de um erro: libera o botão aqui
+      if (document.body.contains(btn) && ev.error !== 'aborted') mostra(ERROS_VOZ[ev.error] || 'Não consegui ouvir. Tente de novo ou digite.', true);
+    };
+    rec.onend = terminou;
+    try { rec.start(); ouvindo(true); aviso.hidden = true; } catch { rec = null; mostra('Não consegui ligar o microfone.', true); }
+  };
 }
 
 function abrirRenda() {
