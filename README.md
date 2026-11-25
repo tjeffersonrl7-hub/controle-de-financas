@@ -1,4 +1,4 @@
-# App de Finanças
+# Controle de Finanças
 
 App pessoal pelo navegador do celular pra lançar gastos na hora. Duas abas: Casa e PJ.
 Os dados ficam só no celular (localStorage).

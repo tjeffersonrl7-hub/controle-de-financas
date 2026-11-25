@@ -63,6 +63,57 @@ export function deleteEntry(state, id) {
   return { ...state, entries: state.entries.filter(x => x.id !== id) };
 }
 
+// ---------- compras com forma de pagamento (cartão pode ser parcelado) ----------
+export const PAGAMENTOS = { pix: 'Pix', cartao: 'Cartão', dinheiro: 'Dinheiro' };
+export const MAX_PARCELAS = 24;
+
+const grupoDe = x => x.grupo || x.id; // lançamento antigo: o próprio id é o grupo
+
+// Mesma data, i meses depois. Dia 31 em mês curto cai no último dia do mês.
+function somaMeses(data, i) {
+  const [y, m, d] = data.split('-').map(Number);
+  const alvo = new Date(y, m - 1 + i, 1);
+  const ultimo = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
+  const p = n => String(n).padStart(2, '0');
+  return `${alvo.getFullYear()}-${p(alvo.getMonth() + 1)}-${p(Math.min(d, ultimo))}`;
+}
+
+function parcelasDe({ aba, valor, categoria, obs = '', data, pagamento, parcelas }, grupo) {
+  const n = pagamento === 'cartao' ? Math.min(Math.max(1, Math.floor(parcelas) || 1), MAX_PARCELAS) : 1;
+  const base = Math.floor(valor / n);
+  const resto = valor - base * n; // centavos que sobram vão na 1ª parcela
+  return Array.from({ length: n }, (_, i) => ({
+    id: i === 0 ? grupo : newId(), grupo, aba, valor: base + (i === 0 ? resto : 0), categoria, obs,
+    data: somaMeses(data, i), pagamento, parcela: i + 1, parcelas: n,
+  }));
+}
+
+export function addCompra(state, campos) {
+  return { ...state, entries: [...state.entries, ...parcelasDe(campos, newId())] };
+}
+
+export function compraDe(state, grupo) {
+  const itens = state.entries.filter(x => grupoDe(x) === grupo);
+  if (!itens.length) return null;
+  const p1 = itens.find(x => (x.parcela || 1) === 1) || itens[0];
+  return {
+    aba: p1.aba, valor: itens.reduce((s, x) => s + x.valor, 0), categoria: p1.categoria, obs: p1.obs || '',
+    data: p1.data, pagamento: p1.pagamento || '', parcelas: p1.parcelas || 1,
+  };
+}
+
+export function updateCompra(state, grupo, campos) {
+  const pos = state.entries.findIndex(x => grupoDe(x) === grupo);
+  if (pos < 0) return state;
+  const resto = state.entries.filter(x => grupoDe(x) !== grupo);
+  const novos = parcelasDe(campos, grupo);
+  return { ...state, entries: [...resto.slice(0, pos), ...novos, ...resto.slice(pos)] };
+}
+
+export function deleteCompra(state, grupo) {
+  return { ...state, entries: state.entries.filter(x => grupoDe(x) !== grupo) };
+}
+
 export function setRenda(state, ym, cents) {
   return { ...state, renda: { ...state.renda, [ym]: cents } };
 }

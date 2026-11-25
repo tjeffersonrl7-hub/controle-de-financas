@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1a7f5a">
-  <title>Finanças</title>
+  <meta name="theme-color" content="#0f1214">
+  <meta name="color-scheme" content="dark">
+  <title>Controle de Finanças</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -13,7 +14,7 @@
 <body>
   <header>
     <nav class="tabs">
-      <button data-aba="casa">CASA</button>
+      <button data-aba="casa">Casa</button>
       <button data-aba="pj">PJ</button>
     </nav>
     <div class="mes">
@@ -24,8 +25,7 @@
   </header>
 
   <main>
-    <section id="resumo" class="card"></section>
-    <button class="btn-lancar" data-act="lancar">+ LANÇAR GASTO</button>
+    <section id="resumo" class="hero"></section>
     <section class="card">
       <h2>Pra onde foi</h2>
       <div id="categorias"></div>
@@ -36,6 +36,8 @@
     </section>
     <button class="link" data-act="editar-cats">Editar categorias</button>
   </main>
+
+  <button class="fab" data-act="lancar" aria-label="Lançar gasto">+</button>
 
   <div id="sheet" class="sheet" hidden>
     <div class="sheet-box" id="sheet-box"></div>
