@@ -50,7 +50,8 @@ main { max-width: 480px; margin: 0 auto; padding: 4px 14px 110px; }
 #lista b { font-weight: 600; font-size: 15px; }
 .vazio { color: var(--apagado); font-size: 14px; }
 
-.link { display: block; margin: 14px auto; border: 0; background: none; color: var(--apagado); font-size: 14px; text-decoration: underline; }
+.rodape { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 6px; }
+.link { display: block; margin: 8px auto; border: 0; background: none; color: var(--apagado); font-size: 14px; text-decoration: underline; }
 
 /* botão + */
 .fab { position: fixed; right: max(20px, calc(50% - 220px)); bottom: calc(24px + env(safe-area-inset-bottom)); width: 62px; height: 62px; border-radius: 50%; border: 0; background: var(--verde); color: var(--verde-escuro); font-size: 34px; font-weight: 400; line-height: 1; box-shadow: 0 8px 24px rgba(61,220,151,.35); z-index: 6; }

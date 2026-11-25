@@ -56,6 +56,7 @@ const SINONIMOS = {
   'Anúncios (Ads)': ['anuncio', 'anuncios', 'ads', 'propaganda', 'impulsionamento', 'trafego'],
   'Embalagem': ['embalagens', 'sacola', 'sacolas', 'caixa', 'caixas', 'etiqueta', 'etiquetas'],
   'Frete': ['correios', 'envio', 'entrega', 'motoboy', 'postagem'],
+  'Terceirizados': ['terceirizado', 'freelancer', 'freela'],
   'Terceirizados (Bruno)': ['bruno', 'terceirizado', 'terceirizados'],
   'Taxas': ['taxa', 'tarifa', 'comissao'],
 };

@@ -9,9 +9,10 @@ export function defaultState() {
     entries: [],
     categorias: {
       casa: ['Mercado', 'Contas da casa', 'Aluguel', 'Transporte', 'Saúde', 'Lazer', 'Comida fora', OUTROS],
-      pj: ['Mercadoria', 'Anúncios (Ads)', 'Embalagem', 'Frete', 'Terceirizados (Bruno)', 'Taxas', OUTROS],
+      pj: ['Mercadoria', 'Anúncios (Ads)', 'Embalagem', 'Frete', 'Terceirizados', 'Taxas', OUTROS],
     },
     renda: {},
+    mostrarPJ: false, // quem começa do zero não vê a aba PJ (liga no app se tiver empresa)
   };
 }
 
@@ -39,7 +40,9 @@ export function load(storage) {
   const entries = s.entries.filter(isEntry).map(x => ({ ...x, obs: typeof x.obs === 'string' ? x.obs : '' }));
   const renda = Object.fromEntries(Object.entries(s.renda).filter(([k, v]) => /^\d{4}-\d{2}$/.test(k) && Number.isSafeInteger(v) && v >= 0));
   if (entries.length !== s.entries.length || Object.keys(renda).length !== Object.keys(s.renda).length) backup(storage, raw);
-  return { version: 1, entries, categorias: { casa: s.categorias.casa, pj: s.categorias.pj }, renda };
+  // quem já usava antes dessa opção existir tinha a aba PJ: continua vendo
+  const mostrarPJ = typeof s.mostrarPJ === 'boolean' ? s.mostrarPJ : true;
+  return { version: 1, entries, categorias: { casa: s.categorias.casa, pj: s.categorias.pj }, renda, mostrarPJ };
 }
 
 const newId = () => (typeof crypto !== 'undefined' && crypto.randomUUID)
@@ -141,4 +144,8 @@ export function deleteCategory(state, aba, nome) {
   if (nome === OUTROS || !list.includes(nome)) return state;
   const s = withCats(state, aba, list.filter(c => c !== nome));
   return { ...s, entries: s.entries.map(x => (x.aba === aba && x.categoria === nome ? { ...x, categoria: OUTROS } : x)) };
+}
+
+export function setMostrarPJ(state, ligado) {
+  return { ...state, mostrarPJ: !!ligado };
 }

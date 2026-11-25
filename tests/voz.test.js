@@ -51,7 +51,9 @@ test('palavras do dia a dia viram a categoria certa', () => {
 test('aba PJ usa as categorias da PJ', () => {
   assert.equal(f('frete 22 reais pix', PJ).categoria, 'Frete');
   assert.equal(f('anúncio 150 no cartão', PJ).categoria, 'Anúncios (Ads)');
-  assert.equal(f('pagamento do bruno 500 pix', PJ).categoria, 'Terceirizados (Bruno)');
+  assert.equal(f('terceirizado 500 pix', PJ).categoria, 'Terceirizados');
+  const pjThomas = PJ.map(c => (c === 'Terceirizados' ? 'Terceirizados (Bruno)' : c));
+  assert.equal(f('pagamento do bruno 500 pix', pjThomas).categoria, 'Terceirizados (Bruno)');
   assert.equal(f('mercado 50', PJ).categoria, null, 'Mercado não existe na PJ');
 });
 

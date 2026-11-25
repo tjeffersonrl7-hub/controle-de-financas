@@ -2,7 +2,7 @@
 import { parseBRL, formatBRL } from './money.js';
 import { interpretarFala } from './voz.js';
 import { todayISO, monthOf, shiftMonth, monthLabel, entriesFor, total, byCategory, sobrou } from './finance.js';
-import { load, save, setRenda, addCategory, renameCategory, deleteCategory, addCompra, updateCompra, deleteCompra, compraDe, PAGAMENTOS, MAX_PARCELAS } from './store.js';
+import { load, save, setRenda, setMostrarPJ, addCategory, renameCategory, deleteCategory, addCompra, updateCompra, deleteCompra, compraDe, PAGAMENTOS, MAX_PARCELAS } from './store.js';
 
 // Uma cor fixa por categoria (pela posição dela na lista da aba).
 const CORES = ['#3ddc97', '#f2b84b', '#6c9cff', '#ff7a9a', '#b48cff', '#4fd1e0', '#ff9f5a', '#a3d977', '#e07ad1', '#9aa5b1'];
@@ -41,6 +41,9 @@ function commit(next) {
 }
 
 function render() {
+  if (!state.mostrarPJ && ui.aba === 'pj') ui.aba = 'casa';
+  $('[data-aba="pj"]').hidden = !state.mostrarPJ;
+  $('#toggle-pj').textContent = state.mostrarPJ ? 'Esconder aba PJ' : 'Tenho empresa: mostrar aba PJ';
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.aba === ui.aba));
   $('#mes-label').textContent = mesCurto(ui.ym);
 
@@ -293,6 +296,10 @@ document.body.addEventListener('click', ev => {
   else if (act === 'lancar') abrirLancamento(null);
   else if (act === 'renda') abrirRenda();
   else if (act === 'editar-cats') abrirCategorias();
+  else if (act === 'toggle-pj') {
+    if (state.mostrarPJ && !confirm('Esconder a aba PJ? Os gastos dela continuam guardados e voltam quando você mostrar de novo.')) return;
+    commit(setMostrarPJ(state, !state.mostrarPJ));
+  }
 });
 $('#lista').onclick = ev => {
   const id = ev.target.closest('li[data-id]')?.dataset.id;

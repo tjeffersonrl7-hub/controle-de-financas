@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultState, load, save, addEntry, updateEntry, deleteEntry, setRenda, addCategory, renameCategory, deleteCategory } from '../js/store.js';
+import { setMostrarPJ, defaultState, load, save, addEntry, updateEntry, deleteEntry, setRenda, addCategory, renameCategory, deleteCategory } from '../js/store.js';
 
 const memStorage = (init = {}) => {
   const data = { ...init };
@@ -11,7 +11,7 @@ const novo = { aba: 'casa', valor: 8750, categoria: 'Mercado', obs: 'Atacadão',
 test('defaultState tem as categorias iniciais da spec', () => {
   const s = defaultState();
   assert.deepEqual(s.categorias.casa, ['Mercado', 'Contas da casa', 'Aluguel', 'Transporte', 'Saúde', 'Lazer', 'Comida fora', 'Outros']);
-  assert.deepEqual(s.categorias.pj, ['Mercadoria', 'Anúncios (Ads)', 'Embalagem', 'Frete', 'Terceirizados (Bruno)', 'Taxas', 'Outros']);
+  assert.deepEqual(s.categorias.pj, ['Mercadoria', 'Anúncios (Ads)', 'Embalagem', 'Frete', 'Terceirizados', 'Taxas', 'Outros']);
   assert.deepEqual(s.entries, []);
   assert.deepEqual(s.renda, {});
 });
@@ -121,4 +121,18 @@ test('addEntry funciona sem crypto.randomUUID', () => {
   } finally {
     Object.defineProperty(globalThis.crypto, 'randomUUID', { value: orig, configurable: true });
   }
+});
+
+test('quem começa do zero não vê a aba PJ; quem já usava continua vendo', () => {
+  assert.equal(defaultState().mostrarPJ, false);
+  const antigo = { version: 1, entries: [], categorias: defaultState().categorias, renda: {} }; // salvo antes dessa opção existir
+  assert.equal(load(memStorage({ 'financas-v1': JSON.stringify(antigo) })).mostrarPJ, true);
+  const desligado = { ...antigo, mostrarPJ: false };
+  assert.equal(load(memStorage({ 'financas-v1': JSON.stringify(desligado) })).mostrarPJ, false);
+});
+
+test('setMostrarPJ liga e desliga a aba', () => {
+  const s = setMostrarPJ(defaultState(), true);
+  assert.equal(s.mostrarPJ, true);
+  assert.equal(setMostrarPJ(s, false).mostrarPJ, false);
 });
