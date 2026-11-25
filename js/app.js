@@ -5,16 +5,24 @@ import { load, save, addEntry, updateEntry, deleteEntry, setRenda, addCategory, 
 
 let state = load(localStorage);
 const ui = { aba: 'casa', ym: monthOf(todayISO()) };
+navigator.storage?.persist?.(); // pede ao celular pra não apagar os dados sozinho
 
 const $ = sel => document.querySelector(sel);
 const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const centsToInput = c => (c / 100).toFixed(2).replace('.', ',');
 const dataCurta = d => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 
+// Salva primeiro; só muda a tela se salvou. Devolve false se falhou (a tela por cima continua aberta).
 function commit(next) {
+  try {
+    save(localStorage, next);
+  } catch {
+    alert('Não foi possível salvar. Tente de novo.');
+    return false;
+  }
   state = next;
-  save(localStorage, state);
   render();
+  return true;
 }
 
 function render() {
@@ -92,15 +100,15 @@ function abrirLancamento(entry) {
     if (!catSel) return void ($('#f-erro').textContent = 'Escolha uma categoria.');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return void ($('#f-erro').textContent = 'Escolha a data.');
     const campos = { aba, valor, categoria: catSel, obs: $('#f-obs').value.trim(), data };
-    closeSheet();
+    const ymAntes = ui.ym;
     ui.ym = monthOf(data); // mostra o mês do lançamento
-    commit(entry ? updateEntry(state, entry.id, campos) : addEntry(state, campos));
+    if (!commit(entry ? updateEntry(state, entry.id, campos) : addEntry(state, campos))) { ui.ym = ymAntes; return; }
+    closeSheet();
   };
   if (entry) {
     $('#f-apagar').onclick = () => {
       if (!confirm(`Apagar ${formatBRL(entry.valor)} em ${entry.categoria}?`)) return;
-      closeSheet();
-      commit(deleteEntry(state, entry.id));
+      if (commit(deleteEntry(state, entry.id))) closeSheet();
     };
   } else {
     $('#f-cancelar').onclick = closeSheet;
@@ -121,8 +129,7 @@ function abrirRenda() {
     const txt = $('#r-valor').value.trim();
     const v = txt === '' || txt === '0' ? 0 : parseBRL(txt);
     if (v === null) return void ($('#r-erro').textContent = 'Digite um valor válido.');
-    closeSheet();
-    commit(setRenda(state, ui.ym, v));
+    if (commit(setRenda(state, ui.ym, v))) closeSheet();
   };
 }
 
@@ -173,6 +180,11 @@ $('#lista').onclick = ev => {
   const entry = id && state.entries.find(x => x.id === id);
   if (entry) abrirLancamento(entry);
 };
-$('#sheet').onclick = ev => { if (ev.target.id === 'sheet') closeSheet(); };
+// Toque no fundo escuro fecha, menos quando já tem valor digitado (pra não perder o gasto por engano).
+$('#sheet').onclick = ev => {
+  if (ev.target.id !== 'sheet') return;
+  const digitado = [...document.querySelectorAll('#sheet-box input.valor')].some(i => i.value.trim() !== '' && i.defaultValue !== i.value);
+  if (!digitado) closeSheet();
+};
 
 render();

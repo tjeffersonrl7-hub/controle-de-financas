@@ -8,5 +8,5 @@ Os dados ficam só no celular (localStorage).
 - Desenho: `docs/design.md` · Plano: `docs/plano.md`
 
 ## Publicar uma atualização
-O app guarda os arquivos no celular. Ao mudar qualquer arquivo, troque o nome do cache em `sw.js`
-(`financas-v1` → `financas-v2`) pra o celular baixar a versão nova.
+O app busca a versão nova sozinho quando o celular tem internet. Não precisa trocar nada.
+**Nunca** use "limpar dados do site" no celular: isso apaga todos os lançamentos.

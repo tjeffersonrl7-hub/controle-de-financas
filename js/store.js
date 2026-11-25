@@ -15,20 +15,43 @@ export function defaultState() {
   };
 }
 
-export function load(storage) {
-  try {
-    const s = JSON.parse(storage.getItem(KEY));
-    if (s && s.version === 1 && Array.isArray(s.entries) && s.categorias && s.renda) return s;
-  } catch { /* dado corrompido: começa do zero */ }
-  return defaultState();
+const isStrList = v => Array.isArray(v) && v.every(c => typeof c === 'string');
+const isEntry = x => x && typeof x.id === 'string' && (x.aba === 'casa' || x.aba === 'pj')
+  && Number.isSafeInteger(x.valor) && x.valor > 0 && typeof x.categoria === 'string'
+  && typeof x.data === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.data);
+
+// Guarda uma cópia do dado original antes de descartar qualquer coisa (é a única cópia que existe).
+function backup(storage, raw) {
+  try { storage.setItem(`${KEY}-corrupt-${Date.now()}`, raw); } catch { /* sem espaço: segue */ }
 }
+
+export function load(storage) {
+  const raw = storage.getItem(KEY);
+  if (!raw) return defaultState();
+  let s;
+  try { s = JSON.parse(raw); } catch { s = null; }
+  if (!s || s.version !== 1 || !Array.isArray(s.entries) || !s.categorias
+      || !isStrList(s.categorias.casa) || !isStrList(s.categorias.pj)
+      || !s.renda || typeof s.renda !== 'object' || Array.isArray(s.renda)) {
+    if (raw !== 'null') backup(storage, raw);
+    return defaultState();
+  }
+  const entries = s.entries.filter(isEntry).map(x => ({ ...x, obs: typeof x.obs === 'string' ? x.obs : '' }));
+  const renda = Object.fromEntries(Object.entries(s.renda).filter(([k, v]) => /^\d{4}-\d{2}$/.test(k) && Number.isSafeInteger(v) && v >= 0));
+  if (entries.length !== s.entries.length || Object.keys(renda).length !== Object.keys(s.renda).length) backup(storage, raw);
+  return { version: 1, entries, categorias: { casa: s.categorias.casa, pj: s.categorias.pj }, renda };
+}
+
+const newId = () => (typeof crypto !== 'undefined' && crypto.randomUUID)
+  ? crypto.randomUUID()
+  : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
 export function save(storage, state) {
   storage.setItem(KEY, JSON.stringify(state));
 }
 
 export function addEntry(state, { aba, valor, categoria, obs = '', data }) {
-  const entry = { id: crypto.randomUUID(), aba, valor, categoria, obs, data };
+  const entry = { id: newId(), aba, valor, categoria, obs, data };
   return { ...state, entries: [...state.entries, entry] };
 }
 

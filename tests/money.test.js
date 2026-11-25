@@ -19,3 +19,15 @@ test('formatBRL mostra no formato brasileiro com espaço normal', () => {
   assert.equal(formatBRL(5), 'R$ 0,05');
   assert.equal(formatBRL(-1000), '-R$ 10,00');
 });
+
+test('parseBRL recusa pontos de milhar mal agrupados', () => {
+  for (const t of ['1.234.56', '1.2.3', '12.34.567', '1.23,45', '1,2,3']) assert.equal(parseBRL(t), null, t);
+  assert.equal(parseBRL('1.234.567,89'), 123456789);
+  assert.equal(parseBRL('1.234'), 123400);
+});
+
+test('parseBRL recusa valor acima de R$ 10.000.000,00', () => {
+  assert.equal(parseBRL('10.000.000,00'), 1000000000);
+  assert.equal(parseBRL('10000000,01'), null);
+  assert.equal(parseBRL('99999999999999999999'), null);
+});

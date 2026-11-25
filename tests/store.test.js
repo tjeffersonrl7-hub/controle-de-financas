@@ -86,3 +86,39 @@ test('addCategory e renameCategory recusam nome vazio ou repetido', () => {
   assert.deepEqual(renameCategory(s, 'casa', 'Lazer', 'Mercado'), s);
   assert.ok(addCategory(s, 'casa', ' Pet ').categorias.casa.includes('Pet'));
 });
+
+test('load com categorias quebradas guarda cópia do dado e abre o padrão', () => {
+  const raw = '{"version":1,"entries":[],"categorias":{},"renda":{}}';
+  const st = memStorage({ 'financas-v1': raw });
+  assert.deepEqual(load(st), defaultState());
+  const copia = Object.keys(st.data).find(k => k.startsWith('financas-v1-corrupt-'));
+  assert.ok(copia, 'deveria guardar cópia');
+  assert.equal(st.data[copia], raw);
+});
+
+test('load com JSON inválido também guarda cópia', () => {
+  const st = memStorage({ 'financas-v1': '{lixo' });
+  load(st);
+  assert.ok(Object.keys(st.data).some(k => k.startsWith('financas-v1-corrupt-')));
+});
+
+test('load descarta lançamentos quebrados e mantém os bons', () => {
+  const bom = { id: 'a', aba: 'casa', valor: 100, categoria: 'Mercado', obs: '', data: '2026-11-01' };
+  const s = { ...defaultState(), entries: [bom, { id: 'b', aba: 'casa', valor: 100, categoria: 'X', data: 5 }, { id: 'c', aba: 'xx', valor: 1, categoria: 'X', data: '2026-11-01' }, { id: 'd', aba: 'pj', valor: -3, categoria: 'X', data: '2026-11-01' }], renda: { '2026-11': 500, '2026-10': 'abc' } };
+  const st = memStorage({ 'financas-v1': JSON.stringify(s) });
+  const r = load(st);
+  assert.deepEqual(r.entries, [bom]);
+  assert.deepEqual(r.renda, { '2026-11': 500 });
+});
+
+test('addEntry funciona sem crypto.randomUUID', () => {
+  const orig = globalThis.crypto.randomUUID;
+  Object.defineProperty(globalThis.crypto, 'randomUUID', { value: undefined, configurable: true });
+  try {
+    const s = addEntry(addEntry(defaultState(), novo), novo);
+    assert.equal(typeof s.entries[0].id, 'string');
+    assert.notEqual(s.entries[0].id, s.entries[1].id);
+  } finally {
+    Object.defineProperty(globalThis.crypto, 'randomUUID', { value: orig, configurable: true });
+  }
+});
